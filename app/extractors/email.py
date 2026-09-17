@@ -14,26 +14,30 @@ STANDARD_EMAIL_REGEX = re.compile(
 
 # Obfuscation patterns: [at], (at), AT, [@], etc.
 OBFUSCATED_PATTERNS = [
-    # e.g., user [at] example [dot] com or user [@] example [.] com
+    # e.g., user [at] example [dot] com or user [@] example [.] com or user AT example DOT com
     re.compile(
-        r"\b([A-Za-z0-9._%+-]+)\s*(?:\[at\]|\(at\)|\[@\]|@|\s+at\s+)\s*"
-        r"([A-Za-z0-9.-]+)\s*(?:\[dot\]|\(dot\)|\[\.\]|\.|\s+dot\s+)\s*"
-        r"([A-Za-z]{2,24})\b",
-        re.IGNORECASE,
+        r"\b([A-Za-z0-9._%+-]+)\s*(?:\[at\]|\(at\)|\[@\]|\bAT\b)\s*"
+        r"([A-Za-z0-9.-]+)\s*(?:\[dot\]|\(dot\)|\[\.\]|\bDOT\b)\s*"
+        r"([A-Za-z]{2,24})\b"
     ),
 ]
 
-# File extensions that falsely look like emails e.g. logo@2x.png
+# File extensions and common English words that falsely look like TLDs
 INVALID_TLDS_AND_EXTENSIONS = {
     "png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico",
     "js", "css", "woff", "woff2", "ttf", "eot",
     "mp3", "mp4", "webm", "zip", "tar", "gz",
+    "when", "great", "post", "we", "at", "to", "in", "on", "for",
+    "with", "by", "from", "about", "this", "that", "it", "they",
 }
 
 
 def is_valid_email_candidate(email: str) -> bool:
     """Verifies that an extracted email has a valid format and is not an asset filename."""
     if not email or "@" not in email:
+        return False
+
+    if "\n" in email or "\r" in email or " " in email:
         return False
 
     parts = email.split("@")

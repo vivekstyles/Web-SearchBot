@@ -194,17 +194,12 @@ class CrawlRepository:
                 self.session.add(contact)
                 await self.session.flush()
 
-                if c_type == "email":
-                    new_emails += 1
-                elif c_type == "phone":
-                    new_phones += 1
-            else:
-                # Update confidence if higher
-                if confidence > contact.confidence:
-                    contact.confidence = confidence
-                    if country and not contact.country:
-                        contact.country = country
-                    await self.session.flush()
+            # Check if this contact was already linked to this crawl job
+            job_linked_stmt = select(ContactSource.id).where(
+                ContactSource.contact_id == contact.id,
+                ContactSource.crawl_job_id == crawl_job_id,
+            )
+            job_linked = (await self.session.execute(job_linked_stmt)).first() is not None
 
             # Link with page via ContactSource if not already linked
             source_stmt = select(ContactSource).where(
@@ -224,6 +219,19 @@ class CrawlRepository:
                 )
                 self.session.add(source)
                 await self.session.flush()
+
+                if not job_linked:
+                    if c_type == "email":
+                        new_emails += 1
+                    elif c_type == "phone":
+                        new_phones += 1
+            else:
+                # Update confidence if higher
+                if confidence > contact.confidence:
+                    contact.confidence = confidence
+                    if country and not contact.country:
+                        contact.country = country
+                    await self.session.flush()
 
         return new_emails, new_phones
 

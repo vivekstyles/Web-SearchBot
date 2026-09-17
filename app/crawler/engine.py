@@ -246,12 +246,14 @@ class CrawlEngine:
             item = await self.queue.pop()
             if not item:
                 async with self._workers_lock:
-                    if self._active_workers == 0:
-                        # Queue is empty and no workers are fetching
+                    is_busy = self._active_workers > 0
+                if is_busy:
+                    idle_cycles = 0
+                else:
+                    idle_cycles += 1
+                    if idle_cycles > 15:
+                        # Queue is empty and all workers have been idle for ~3 seconds
                         break
-                idle_cycles += 1
-                if idle_cycles > 20:
-                    break
                 await asyncio.sleep(0.2)
                 continue
 
@@ -275,13 +277,13 @@ class CrawlEngine:
                     ROBOTS_DENIED_TOTAL.labels(domain=domain).inc()
                     continue
 
+            async with self._workers_lock:
+                self._active_workers += 1
+
             # Respect per-domain rate limit
             await self.rate_limiter.acquire(
                 domain, requests_per_second=self.requests_per_second
             )
-
-            async with self._workers_lock:
-                self._active_workers += 1
 
             try:
                 # Fetch page

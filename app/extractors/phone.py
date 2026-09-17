@@ -50,6 +50,11 @@ def is_obvious_false_positive(raw_val: str) -> bool:
     if REPEATED_DIGIT_REGEX.match(cleaned):
         return True
 
+    # Plain unformatted number sequences (e.g. 5000001 from 8.5000001) without any phone symbols
+    if not any(c in raw_val for c in ("-", " ", "(", ")", "+")):
+        if len(cleaned) <= 8 or len(set(cleaned)) <= 3:
+            return True
+
     return False
 
 

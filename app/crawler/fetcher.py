@@ -90,7 +90,6 @@ class AsyncHttpFetcher:
         headers = {
             "User-Agent": self.user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.1",
-            "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-US,en;q=0.9",
         }
 
@@ -284,39 +283,27 @@ class AsyncHttpFetcher:
                 except ValueError:
                     pass
 
-            # 6. Stream and download body with byte limit guard
-            body_chunks = []
-            total_bytes = 0
+            # 6. Read and decompress body with byte limit guard
             try:
-                async for chunk in response.aiter_bytes():
-                    total_bytes += len(chunk)
-                    if total_bytes > self.max_response_size:
-                        await response.aclose()
-                        elapsed_ms = (time.perf_counter() - start_time) * 1000
-                        return FetchResult(
-                            url=current_url,
-                            status_code=response.status_code,
-                            headers=dict(response.headers),
-                            content="",
-                            content_type=content_type,
-                            response_time_ms=elapsed_ms,
-                            content_hash="",
-                            error=f"Response body exceeded maximum limit of {self.max_response_size} bytes",
-                        )
-                    body_chunks.append(chunk)
+                await response.aread()
+                raw_bytes = response.content
+                if len(raw_bytes) > self.max_response_size:
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000
+                    return FetchResult(
+                        url=current_url,
+                        status_code=response.status_code,
+                        headers=dict(response.headers),
+                        content="",
+                        content_type=content_type,
+                        response_time_ms=elapsed_ms,
+                        content_hash="",
+                        error=f"Response body exceeded maximum limit of {self.max_response_size} bytes",
+                    )
             finally:
                 await response.aclose()
 
-            raw_bytes = b"".join(body_chunks)
             elapsed_ms = (time.perf_counter() - start_time) * 1000
-
-            # Decode text
-            charset = response.encoding or "utf-8"
-            try:
-                decoded_content = raw_bytes.decode(charset, errors="replace")
-            except Exception:
-                decoded_content = raw_bytes.decode("utf-8", errors="replace")
-
+            decoded_content = response.text
             content_hash = hashlib.sha256(raw_bytes).hexdigest()
 
             return FetchResult(
