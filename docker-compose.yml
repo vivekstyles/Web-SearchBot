@@ -1,0 +1,48 @@
+services:
+  api:
+    build: .
+    container_name: contact_crawler_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/crawler.db
+      - REDIS_URL=redis://redis:6379/0
+      - CRAWLER_USER_AGENT=ContactDiscoveryBot/1.0 (+https://example.com/bot)
+      - DEFAULT_REQUESTS_PER_SECOND=2.0
+      - DEFAULT_CONCURRENCY=5
+      - DEFAULT_MAX_PAGES=500
+      - DEFAULT_MAX_DEPTH=5
+      - ALLOW_PRIVATE_IPS=false
+    volumes:
+      - crawler_data:/app/data
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    container_name: contact_crawler_worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.crawl_worker"]
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/crawler.db
+      - REDIS_URL=redis://redis:6379/0
+      - CRAWLER_USER_AGENT=ContactDiscoveryBot/1.0 (+https://example.com/bot)
+      - ALLOW_PRIVATE_IPS=false
+    volumes:
+      - crawler_data:/app/data
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: contact_crawler_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  crawler_data:
+  redis_data:
