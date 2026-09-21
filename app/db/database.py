@@ -42,9 +42,21 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def init_db() -> None:
-    """Create all tables in the database."""
+    """Create all tables in the database and apply lightweight schema migrations."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        if settings.DATABASE_URL.startswith("sqlite"):
+            def migrate_sqlite_columns(sync_conn):
+                cursor = sync_conn.connection.cursor()
+                cursor.execute("PRAGMA table_info(crawl_jobs);")
+                columns = [row[1] for row in cursor.fetchall()]
+                if columns and "linkedin_found" not in columns:
+                    cursor.execute("ALTER TABLE crawl_jobs ADD COLUMN linkedin_found INTEGER DEFAULT 0;")
+                cursor.close()
+
+            await conn.run_sync(migrate_sqlite_columns)
+
     logger.info("Database initialized successfully.")
 
 

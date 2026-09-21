@@ -24,6 +24,12 @@ PHONES_FOUND_TOTAL = Counter(
     ["domain"],
 )
 
+LINKEDIN_FOUND_TOTAL = Counter(
+    "crawler_linkedin_found_total",
+    "Total number of unique LinkedIn profiles discovered",
+    ["domain"],
+)
+
 BYTES_DOWNLOADED_TOTAL = Counter(
     "crawler_bytes_downloaded_total",
     "Total volume of HTML data downloaded in bytes",

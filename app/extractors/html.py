@@ -177,4 +177,21 @@ class ParsedHtmlDocument:
                         "context": anchor_text or f"tel:{tel_part}",
                     })
 
+            # linkedin:
+            elif "linkedin.com" in href.lower():
+                source_type = "anchor"
+                if a_tag.find_parent("address"):
+                    source_type = "address"
+                elif a_tag.find_parent("footer"):
+                    source_type = "footer"
+                elif a_tag.find_parent("header"):
+                    source_type = "header"
+
+                attr_contacts.append({
+                    "type": "linkedin",
+                    "raw_value": href,
+                    "source_type": source_type,
+                    "context": anchor_text or href,
+                })
+
         return attr_contacts

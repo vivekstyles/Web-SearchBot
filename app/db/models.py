@@ -51,6 +51,7 @@ class CrawlJob(Base):
     pages_failed: Mapped[int] = mapped_column(Integer, default=0)
     emails_found: Mapped[int] = mapped_column(Integer, default=0)
     phones_found: Mapped[int] = mapped_column(Integer, default=0)
+    linkedin_found: Mapped[int] = mapped_column(Integer, default=0)
     config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -83,9 +84,9 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    type: Mapped[str] = mapped_column(String(16), index=True, nullable=False)  # email, phone
-    value: Mapped[str] = mapped_column(String(255), nullable=False)
-    normalized_value: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    type: Mapped[str] = mapped_column(String(16), index=True, nullable=False)  # email, phone, linkedin
+    value: Mapped[str] = mapped_column(String(512), nullable=False)
+    normalized_value: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
     country: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

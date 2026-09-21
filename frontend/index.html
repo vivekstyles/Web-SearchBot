@@ -92,6 +92,15 @@
 
       <div class="glass-card rounded-xl p-4 shadow-sm">
         <div class="text-slate-400 text-xs font-medium uppercase tracking-wider flex items-center justify-between">
+          <span>LinkedIn</span>
+          <i class="fa-brands fa-linkedin text-blue-400"></i>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-white" id="stat-linkedin">0</div>
+        <div class="mt-1 text-xs text-slate-400">Profile URLs</div>
+      </div>
+
+      <div class="glass-card rounded-xl p-4 shadow-sm">
+        <div class="text-slate-400 text-xs font-medium uppercase tracking-wider flex items-center justify-between">
           <span>Failures</span>
           <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
         </div>
@@ -120,13 +129,14 @@
               <th class="px-6 py-3">Pages</th>
               <th class="px-6 py-3">Emails</th>
               <th class="px-6 py-3">Phones</th>
+              <th class="px-6 py-3">LinkedIn</th>
               <th class="px-6 py-3">Started</th>
               <th class="px-6 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="crawls-tbody" class="divide-y divide-slate-800">
             <tr>
-              <td colspan="7" class="px-6 py-8 text-center text-slate-500">Loading crawl jobs...</td>
+              <td colspan="8" class="px-6 py-8 text-center text-slate-500">Loading crawl jobs...</td>
             </tr>
           </tbody>
         </table>
@@ -141,7 +151,7 @@
             <i class="fa-solid fa-address-book text-indigo-400"></i>
             <h2 class="text-base font-semibold text-white">Discovered Contacts</h2>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">Deduplicated email addresses and phone numbers extracted from crawled pages</p>
+          <p class="text-xs text-slate-400 mt-0.5">Deduplicated email addresses, phone numbers, and LinkedIn profiles extracted from crawled pages</p>
         </div>
         <div class="flex items-center flex-wrap gap-2">
           <!-- Filters -->
@@ -149,6 +159,7 @@
             <button onclick="setContactTypeFilter('')" id="tab-all" class="px-3 py-1 rounded bg-indigo-600 text-white font-medium">All</button>
             <button onclick="setContactTypeFilter('email')" id="tab-email" class="px-3 py-1 rounded text-slate-400 hover:text-white">Emails</button>
             <button onclick="setContactTypeFilter('phone')" id="tab-phone" class="px-3 py-1 rounded text-slate-400 hover:text-white">Phones</button>
+            <button onclick="setContactTypeFilter('linkedin')" id="tab-linkedin" class="px-3 py-1 rounded text-slate-400 hover:text-white">LinkedIn</button>
           </div>
 
           <div class="relative">
@@ -276,6 +287,7 @@
           document.getElementById('stat-pages').textContent = data.pages_crawled;
           document.getElementById('stat-emails').textContent = data.emails_found;
           document.getElementById('stat-phones').textContent = data.phones_found;
+          document.getElementById('stat-linkedin').textContent = data.linkedin_found || 0;
           document.getElementById('stat-failures').textContent = data.pages_failed;
         }
       } catch (e) {
@@ -298,7 +310,7 @@
     function renderCrawls(crawls) {
       const tbody = document.getElementById('crawls-tbody');
       if (!crawls || crawls.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">No crawls recorded yet. Click "New Crawl" to start one.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">No crawls recorded yet. Click "New Crawl" to start one.</td></tr>`;
         return;
       }
 
@@ -325,6 +337,7 @@
             <td class="px-6 py-4">${c.pages_crawled} / ${c.max_pages}</td>
             <td class="px-6 py-4 text-sky-400 font-semibold">${c.emails_found}</td>
             <td class="px-6 py-4 text-emerald-400 font-semibold">${c.phones_found}</td>
+            <td class="px-6 py-4 text-blue-400 font-semibold">${c.linkedin_found || 0}</td>
             <td class="px-6 py-4 text-xs text-slate-400">${dateStr}</td>
             <td class="px-6 py-4 text-right space-x-2">
               <button onclick="viewCrawlContacts('${c.crawl_id}')" class="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium">Contacts</button>
@@ -367,9 +380,19 @@
       }
 
       tbody.innerHTML = items.map(item => {
-        const typeBadge = item.type === 'email'
-          ? `<span class="badge-email px-2 py-0.5 rounded text-xs font-medium">Email</span>`
-          : `<span class="badge-phone px-2 py-0.5 rounded text-xs font-medium">Phone ${item.country ? `(${item.country})` : ''}</span>`;
+        let typeBadge = '';
+        let valueDisplay = `<span class="font-medium text-white select-all">${item.value}</span>`;
+
+        if (item.type === 'email') {
+          typeBadge = `<span class="badge-email px-2 py-0.5 rounded text-xs font-medium">Email</span>`;
+        } else if (item.type === 'phone') {
+          typeBadge = `<span class="badge-phone px-2 py-0.5 rounded text-xs font-medium">Phone ${item.country ? `(${item.country})` : ''}</span>`;
+        } else if (item.type === 'linkedin') {
+          typeBadge = `<span class="px-2 py-0.5 rounded text-xs font-medium bg-[#0A66C2]/20 text-[#70b5f9] border border-[#0A66C2]/40 inline-flex items-center gap-1"><i class="fa-brands fa-linkedin text-[11px]"></i> LinkedIn</span>`;
+          valueDisplay = `<a href="${item.value}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 hover:underline inline-flex items-center gap-1 font-mono text-xs">${item.value} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>`;
+        } else {
+          typeBadge = `<span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300">${item.type}</span>`;
+        }
 
         const confScore = (item.confidence * 100).toFixed(0);
         const confColor = confScore >= 90 ? 'text-emerald-400' : (confScore >= 75 ? 'text-amber-400' : 'text-slate-400');
@@ -377,7 +400,7 @@
         return `
           <tr class="hover:bg-slate-800/30 transition text-xs">
             <td class="px-6 py-3">${typeBadge}</td>
-            <td class="px-6 py-3 font-medium text-white select-all">${item.value}</td>
+            <td class="px-6 py-3">${valueDisplay}</td>
             <td class="px-6 py-3 font-mono text-slate-400 select-all">${item.normalized_value}</td>
             <td class="px-6 py-3">
               <div class="text-slate-400 font-medium">${item.source_type}</div>
@@ -393,11 +416,13 @@
     function setContactTypeFilter(type) {
       activeFilterType = type;
       currentOffset = 0;
-      ['tab-all', 'tab-email', 'tab-phone'].forEach(id => {
-        document.getElementById(id).className = 'px-3 py-1 rounded text-slate-400 hover:text-white';
+      ['tab-all', 'tab-email', 'tab-phone', 'tab-linkedin'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'px-3 py-1 rounded text-slate-400 hover:text-white';
       });
-      const activeTabId = type === 'email' ? 'tab-email' : (type === 'phone' ? 'tab-phone' : 'tab-all');
-      document.getElementById(activeTabId).className = 'px-3 py-1 rounded bg-indigo-600 text-white font-medium';
+      const activeTabId = type === 'email' ? 'tab-email' : (type === 'phone' ? 'tab-phone' : (type === 'linkedin' ? 'tab-linkedin' : 'tab-all'));
+      const activeEl = document.getElementById(activeTabId);
+      if (activeEl) activeEl.className = 'px-3 py-1 rounded bg-indigo-600 text-white font-medium';
       fetchContacts();
     }
 

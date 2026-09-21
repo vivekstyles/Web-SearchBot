@@ -35,6 +35,7 @@ INDEX_HTML = """<!DOCTYPE html>
   <main>
     <p>We build exceptional products for the world.</p>
     <p>General inquiries: info@example.org</p>
+    <p>Follow our company on <a href="https://www.linkedin.com/company/acme-corp">LinkedIn</a></p>
   </main>
   <footer>
     <p>&copy; 2026 Acme Corp. Call our helpline at +1 800 555 0199.</p>
@@ -87,11 +88,13 @@ TEAM_HTML = """<!DOCTYPE html>
     <h2>Alice Smith - VP Engineering (UK)</h2>
     <p>Email: alice.smith@example.org</p>
     <p>UK Office: +44 20 7946 0958</p>
+    <p>LinkedIn: <a href="https://www.linkedin.com/in/alice-smith-12345">Connect with Alice</a></p>
   </div>
   <div class="member">
     <h2>Bob Jones - Tech Lead (India)</h2>
     <p>Email: bob.jones+dev@example.org</p>
     <p>India Office: +91 98765 43210</p>
+    <p>LinkedIn: https://www.linkedin.com/in/bobjones-dev</p>
   </div>
   <p>Duplicate number across pages: (555) 234-5678</p>
 </body>

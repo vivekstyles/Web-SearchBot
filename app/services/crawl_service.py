@@ -123,6 +123,11 @@ class CrawlService:
                 select(func.count(Contact.id)).where(Contact.type == "phone")
             )
         ).scalar_one()
+        linkedin_found = (
+            await session.execute(
+                select(func.count(Contact.id)).where(Contact.type == "linkedin")
+            )
+        ).scalar_one()
 
         return {
             "total_crawls": total_crawls,
@@ -133,6 +138,7 @@ class CrawlService:
             "pages_failed": pages_failed,
             "emails_found": emails_found,
             "phones_found": phones_found,
+            "linkedin_found": linkedin_found,
         }
 
     async def export_contacts(

@@ -30,3 +30,5 @@ class SystemStatsResponse(BaseModel):
     pages_failed: int
     emails_found: int
     phones_found: int
+    linkedin_found: int = 0
+

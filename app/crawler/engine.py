@@ -12,6 +12,7 @@ from app.crawler.metrics import (
     PAGES_FAILED_TOTAL,
     EMAILS_FOUND_TOTAL,
     PHONES_FOUND_TOTAL,
+    LINKEDIN_FOUND_TOTAL,
     BYTES_DOWNLOADED_TOTAL,
     RESPONSE_DURATION_SECONDS,
     ROBOTS_DENIED_TOTAL,
@@ -24,7 +25,7 @@ from app.crawler.sitemap import SitemapParser
 from app.crawler.url import (
     normalize_url,
     get_domain,
-    is_same_domain,
+    is_valid_crawlable_url,
     is_likely_contact_url,
 )
 from app.db.models import utc_now
@@ -32,6 +33,7 @@ from app.db.repository import CrawlRepository
 from app.extractors.email import EmailExtractor
 from app.extractors.html import ParsedHtmlDocument
 from app.extractors.phone import PhoneExtractor
+from app.extractors.linkedin import LinkedInExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +358,10 @@ class CrawlEngine:
                 phones = PhoneExtractor.extract_from_nodes(
                     text_nodes, attr_contacts, domain=domain, is_contact_page=is_contact_pg
                 )
-                all_contacts = emails + phones
+                linkedin_profiles = LinkedInExtractor.extract_from_nodes(
+                    text_nodes, attr_contacts, is_contact_page=is_contact_pg
+                )
+                all_contacts = emails + phones + linkedin_profiles
 
                 # Persist Page and Contacts
                 async with self.session_factory() as session:
@@ -372,7 +377,7 @@ class CrawlEngine:
                         response_time_ms=fetch_res.response_time_ms,
                     )
 
-                    new_emails, new_phones = await repo.save_contacts(
+                    new_emails, new_phones, new_linkedin = await repo.save_contacts(
                         self.job_id, page.id, all_contacts
                     )
                     await repo.increment_job_stats(
@@ -380,6 +385,7 @@ class CrawlEngine:
                         pages_crawled=1,
                         emails_found=new_emails,
                         phones_found=new_phones,
+                        linkedin_found=new_linkedin,
                     )
                     await session.commit()
 
@@ -387,6 +393,8 @@ class CrawlEngine:
                     EMAILS_FOUND_TOTAL.labels(domain=domain).inc(new_emails)
                 if new_phones > 0:
                     PHONES_FOUND_TOTAL.labels(domain=domain).inc(new_phones)
+                if new_linkedin > 0:
+                    LINKEDIN_FOUND_TOTAL.labels(domain=domain).inc(new_linkedin)
 
             except Exception as e:
                 logger.warning("Error processing %s: %s", url, e)

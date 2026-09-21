@@ -96,6 +96,7 @@ class CrawlRepository:
         pages_failed: int = 0,
         emails_found: int = 0,
         phones_found: int = 0,
+        linkedin_found: int = 0,
     ) -> None:
         stmt = (
             update(CrawlJob)
@@ -105,6 +106,7 @@ class CrawlRepository:
                 pages_failed=CrawlJob.pages_failed + pages_failed,
                 emails_found=CrawlJob.emails_found + emails_found,
                 phones_found=CrawlJob.phones_found + phones_found,
+                linkedin_found=CrawlJob.linkedin_found + linkedin_found,
             )
         )
         await self.session.execute(stmt)
@@ -136,6 +138,11 @@ class CrawlRepository:
         await self.session.flush()
         return page
 
+    async def get_page_by_url(self, crawl_job_id: str, url: str) -> Optional[Page]:
+        stmt = select(Page).where(Page.crawl_job_id == crawl_job_id, Page.url == url)
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def list_pages_by_job(
         self, job_id: str, limit: int = 100, offset: int = 0
     ) -> Tuple[List[Page], int]:
@@ -158,13 +165,14 @@ class CrawlRepository:
         crawl_job_id: str,
         page_id: str,
         extracted_contacts: List[Dict[str, Any]],
-    ) -> Tuple[int, int]:
+    ) -> Tuple[int, int, int]:
         """
         Saves contacts and sources, deduplicating contacts across the database.
-        Returns: (new_emails_count, new_phones_count)
+        Returns: (new_emails_count, new_phones_count, new_linkedin_count)
         """
         new_emails = 0
         new_phones = 0
+        new_linkedin = 0
 
         for item in extracted_contacts:
             c_type = item["type"]
@@ -225,6 +233,8 @@ class CrawlRepository:
                         new_emails += 1
                     elif c_type == "phone":
                         new_phones += 1
+                    elif c_type == "linkedin":
+                        new_linkedin += 1
             else:
                 # Update confidence if higher
                 if confidence > contact.confidence:
@@ -233,7 +243,7 @@ class CrawlRepository:
                         contact.country = country
                     await self.session.flush()
 
-        return new_emails, new_phones
+        return new_emails, new_phones, new_linkedin
 
     async def list_contacts(
         self,

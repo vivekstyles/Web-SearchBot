@@ -32,6 +32,7 @@ class CrawlStatusResponse(BaseModel):
     pages_failed: int
     emails_found: int
     phones_found: int
+    linkedin_found: int = 0
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
