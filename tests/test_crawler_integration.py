@@ -119,12 +119,20 @@ async def test_end_to_end_crawl(mock_server, test_db):
         assert "+442079460958" in phones
         assert "+919876543210" in phones
 
+        # Check LinkedIn profiles normalized
+        linkedin_urls = [c["normalized_value"] for c in contacts if c["type"] == "linkedin"]
+        assert "https://www.linkedin.com/company/acme-corp" in linkedin_urls
+        assert "https://www.linkedin.com/in/alice-smith-12345" in linkedin_urls
+        assert "https://www.linkedin.com/in/bobjones-dev" in linkedin_urls
+
         # Deduplication check: each normalized contact appears only once in contacts table
         from sqlalchemy import select
         from app.db.models import Contact
         unique_contacts = (await session.execute(select(Contact))).scalars().all()
         assert len(unique_contacts) == len(set(c.normalized_value for c in unique_contacts))
-        assert len(unique_contacts) == 13
+        assert len(unique_contacts) == 16
+        assert total_contacts == 16
+        assert len(contacts) == 16
 
         # Check context
         support_contact = next(c for c in contacts if c["normalized_value"] == "support@example.org")

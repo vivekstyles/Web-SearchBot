@@ -191,57 +191,47 @@ class CrawlRepository:
             res = await self.session.execute(stmt)
             contact = res.scalar_one_or_none()
 
-            if not contact:
-                contact = Contact(
-                    type=c_type,
-                    value=val,
-                    normalized_value=norm_val,
-                    country=country,
-                    confidence=confidence,
-                )
-                self.session.add(contact)
-                await self.session.flush()
-
-            # Check if this contact was already linked to this crawl job
-            job_linked_stmt = select(ContactSource.id).where(
-                ContactSource.contact_id == contact.id,
-                ContactSource.crawl_job_id == crawl_job_id,
-            )
-            job_linked = (await self.session.execute(job_linked_stmt)).first() is not None
-
-            # Link with page via ContactSource if not already linked
-            source_stmt = select(ContactSource).where(
-                ContactSource.contact_id == contact.id,
-                ContactSource.page_id == page_id,
-            )
-            src_res = await self.session.execute(source_stmt)
-            source = src_res.scalar_one_or_none()
-
-            if not source:
-                source = ContactSource(
-                    contact_id=contact.id,
-                    page_id=page_id,
-                    crawl_job_id=crawl_job_id,
-                    context=context[:500] if context else None,
-                    source_type=source_type,
-                )
-                self.session.add(source)
-                await self.session.flush()
-
-                if not job_linked:
-                    if c_type == "email":
-                        new_emails += 1
-                    elif c_type == "phone":
-                        new_phones += 1
-                    elif c_type == "linkedin":
-                        new_linkedin += 1
-            else:
-                # Update confidence if higher
+            if contact:
+                # Contact already stored: only store unique values
+                # Update confidence or country if higher/missing
+                updated = False
                 if confidence > contact.confidence:
                     contact.confidence = confidence
-                    if country and not contact.country:
-                        contact.country = country
+                    updated = True
+                if country and not contact.country:
+                    contact.country = country
+                    updated = True
+                if updated:
                     await self.session.flush()
+                continue
+
+            # New unique contact
+            contact = Contact(
+                type=c_type,
+                value=val,
+                normalized_value=norm_val,
+                country=country,
+                confidence=confidence,
+            )
+            self.session.add(contact)
+            await self.session.flush()
+
+            source = ContactSource(
+                contact_id=contact.id,
+                page_id=page_id,
+                crawl_job_id=crawl_job_id,
+                context=context[:500] if context else None,
+                source_type=source_type,
+            )
+            self.session.add(source)
+            await self.session.flush()
+
+            if c_type == "email":
+                new_emails += 1
+            elif c_type == "phone":
+                new_phones += 1
+            elif c_type == "linkedin":
+                new_linkedin += 1
 
         return new_emails, new_phones, new_linkedin
 

@@ -114,5 +114,5 @@ class ContactSource(Base):
     crawl_job: Mapped["CrawlJob"] = relationship("CrawlJob", back_populates="contact_sources")
 
     __table_args__ = (
-        UniqueConstraint("contact_id", "page_id", name="uq_contact_source_page"),
+        UniqueConstraint("contact_id", name="uq_contact_source_contact"),
     )
